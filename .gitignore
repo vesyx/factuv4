@@ -1,0 +1,87 @@
+# OS and filesystem metadata
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+*:Zone.Identifier*
+
+# Editor and IDE state
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+*.local
+*.secret
+*.pem
+*.key
+*.p12
+*.jks
+
+# Java and Maven build outputs
+target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+!.mvn/wrapper/maven-wrapper.jar
+!**/.mvn/wrapper/maven-wrapper.jar
+dependency-reduced-pom.xml
+.mvn/timing.properties
+
+# Test, coverage, and quality tool outputs
+surefire-reports/
+failsafe-reports/
+jacoco.exec
+coverage/
+.scannerwork/
+.sonar/
+.semgrep/
+.trivycache/
+.dependency-check-data/
+dependency-check-report.*
+semgrep-results.*
+trivy-results.*
+zap-report.*
+*.sarif
+
+# Logs and runtime files
+*.log
+logs/
+*.pid
+*.seed
+hs_err_pid*
+replay_pid*
+*.hprof
+
+# Docker and local pipeline artifacts
+.docker/
+docker-compose.override.yml
+jenkins_home/
+sonarqube_data/
+sonarqube_extensions/
+sonarqube_logs/
+
+# Dependency caches
+.m2/repository/
+node_modules/
+.npm/
+.pnpm-store/
+
+# Generated reports/artifacts
+reports/
+artifacts/
+build/
+dist/
+out/
