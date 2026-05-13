@@ -6,10 +6,11 @@
 package com.paymentchain.billing.controller;
 
 import com.paymentchain.billing.common.InvoiceRequestMapper;
-import com.paymentchain.billing.common.InvoiceResposeMapper;
+import com.paymentchain.billing.common.InvoiceResponseMapper;
 import com.paymentchain.billing.dto.InvoiceRequest;
 import com.paymentchain.billing.dto.InvoiceResponse;
 import com.paymentchain.billing.entities.Invoice;
+import com.paymentchain.billing.exception.BusinessRuleException;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import java.util.List;
@@ -22,75 +23,97 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import com.paymentchain.billing.respository.InvoiceRepository;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.Optional;
+import java.util.function.Supplier;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  *
  * @author sotobotero
  */
-@Api(tags = "Billing API")
+@Tag(name = "Billing API", description = "This APi serve all functionality for management Invoices")
 @RestController
-@RequestMapping("/billing")
+@RequestMapping("/billing/v1")
 public class InvoiceRestController {
-    
+
     @Autowired
     InvoiceRepository billingRepository;
-    
+
     @Autowired
     InvoiceRequestMapper irm;
-    
+
     @Autowired
-    InvoiceResposeMapper irspm;
-    
-    @ApiOperation(value = "Return all transaction bundled into Response", notes = "Return 204 if no data found")
+    InvoiceResponseMapper irspm;
+
+    @Operation(description = "Return all invoices bundled into Response", summary = "Return 204 if no data found")
     @ApiResponses(value = {
-        @ApiResponse(code = 204, message = "There are not transactions"),
-        @ApiResponse(code = 500, message = "Internal error")})
+        @ApiResponse(responseCode = "200", description = "Exito"),
+        @ApiResponse(responseCode = "500", description = "Internal error")})
     @GetMapping()
-    public List<InvoiceResponse> list() {
+    public List<InvoiceResponse> list() throws BusinessRuleException {
         List<Invoice> findAll = billingRepository.findAll();
-        List<InvoiceResponse> InvoiceListToInvoiceResposeList = irspm.InvoiceListToInvoiceResposeList(findAll);
-       return InvoiceListToInvoiceResposeList;
-    } 
+        Supplier<BusinessRuleException> exceptionSupplier = () -> new BusinessRuleException("NO_FOUND", "The are no elements", HttpStatus.NOT_FOUND);
+        return Optional.ofNullable(findAll)
+                .filter(list -> !list.isEmpty())
+                .map(irspm::InvoiceListToInvoiceResposeList)
+                .orElseThrow(exceptionSupplier);
+    }
+
     @GetMapping("/{id}")
-    public InvoiceResponse get(@PathVariable String id) {
+    public InvoiceResponse get(@PathVariable String id) throws BusinessRuleException {
         Optional<Invoice> findById = billingRepository.findById(Long.valueOf(id));
-        Invoice get = findById.get();
-        return irspm.InvoiceToInvoiceRespose(get);
+        return findById.map(irspm::InvoiceToInvoiceRespose)
+                .orElseThrow(() -> new BusinessRuleException("NO_FOUND", "The are no elements", HttpStatus.NOT_FOUND));
     }
-    
-    @PutMapping("/{id}")
-    public ResponseEntity<?> put(@PathVariable String id, @RequestBody InvoiceRequest input) {
-       Invoice save = null; 
-        Optional<Invoice> findById = billingRepository.findById(Long.valueOf(id));
-        Invoice get = findById.get();
-        if(get != null){ 
-                Invoice InvoiceRequestToInvoice = irm.InvoiceRequestToInvoice(input);
-                    save = billingRepository.save(InvoiceRequestToInvoice);  
+
+    @GetMapping("/pageable")
+    public Page<InvoiceResponse> getAllPaged(@RequestParam("page") int page, @RequestParam("size") int size) throws BusinessRuleException {
+         Pageable pageable = PageRequest.of(page, size);
+        Page<Invoice> findAll = billingRepository.findAll(pageable);
+        if (findAll.isEmpty()) {
+            throw new BusinessRuleException("NO_FOUND", "There are no elements", HttpStatus.NOT_FOUND);
         }
-        return ResponseEntity.ok(save);
+        return findAll.map(irspm::InvoiceToInvoiceRespose);
     }
-    
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> put(@PathVariable String id, @RequestBody InvoiceRequest input) throws BusinessRuleException {
+        Optional<Invoice> dtoOptional = billingRepository.findById(Long.valueOf(id));
+        if (dtoOptional.isPresent()) {
+            Invoice dtoTransformed = irm.InvoiceRequestToInvoice(input);
+            dtoTransformed.setId(dtoOptional.get().getId());
+            var dto = billingRepository.save(dtoTransformed);
+            return ResponseEntity.ok(irspm.InvoiceToInvoiceRespose(dto));
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping
     public ResponseEntity<?> post(@RequestBody InvoiceRequest input) {
         Invoice InvoiceRequestToInvoice = irm.InvoiceRequestToInvoice(input);
-        Invoice save = billingRepository.save(InvoiceRequestToInvoice);  
-        InvoiceResponse InvoiceToInvoiceRespose = irspm.InvoiceToInvoiceRespose(save);
-        return ResponseEntity.ok(InvoiceToInvoiceRespose);
+        Invoice save = billingRepository.save(InvoiceRequestToInvoice);
+        InvoiceResponse dto = irspm.InvoiceToInvoiceRespose(save);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
-    
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable String id) {
-          Invoice save = null; 
-        Optional<Invoice> findById = billingRepository.findById(Long.valueOf(id));
-        Invoice get = findById.get();
-        if(get != null){               
-                  billingRepository.delete(get);  
+    public ResponseEntity<?> delete(@PathVariable String id) throws BusinessRuleException {
+        Optional<Invoice> dto = billingRepository.findById(Long.valueOf(id));
+        if (!dto.isPresent()) {
+            return ResponseEntity.notFound().build();
         }
+        billingRepository.delete(dto.get());
         return ResponseEntity.ok().build();
     }
+
 }

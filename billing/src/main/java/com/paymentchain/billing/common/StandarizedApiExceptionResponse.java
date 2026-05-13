@@ -4,7 +4,8 @@
  * and open the template in the editor.
  */
 package com.paymentchain.billing.common;
-import io.swagger.annotations.ApiModelProperty;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  *
@@ -22,21 +23,21 @@ import io.swagger.annotations.ApiModelProperty;
  * https://api.twitter.com/1.1/statuses/update.json?include_entities=true
  */
 public class StandarizedApiExceptionResponse{
-   @ApiModelProperty(notes = "The unique uri identifier that categorizes the error", name = "type", 
-           required = true, example = "/errors/authentication/not-authorized")
+   @Schema(description = "The unique uri identifier that categorizes the error", name = "type", 
+           requiredMode = Schema.RequiredMode.REQUIRED, example = "/errors/authentication/not-authorized")
     private String type ="/errors/uncategorized";
-    @ApiModelProperty(notes = "A brief, human-readable message about the error", name = "title", 
-           required = true, example = "The user does not have autorization")
+    @Schema(description = "A brief, human-readable message about the error", name = "title", 
+           requiredMode = Schema.RequiredMode.REQUIRED, example = "The user does not have autorization")
     private String title;
-     @ApiModelProperty(notes = "The unique error code", name = "code", 
-           required = false, example = "192")
+     @Schema(description = "The unique error code", name = "code", 
+           requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "192")
     private String code;
-      @ApiModelProperty(notes = "A human-readable explanation of the error", name = "detail", 
-           required = true, example = "The user does not have the propertly persmissions to acces the "
+      @Schema(description = "A human-readable explanation of the error", name = "detail", 
+           requiredMode = Schema.RequiredMode.REQUIRED, example = "The user does not have the propertly persmissions to acces the "
                    + "resource, please contact with ass https://digitalthinking.biz/es/ada-enterprise-core#contactus")
     private String detail;
-       @ApiModelProperty(notes = "A URI that identifies the specific occurrence of the error", name = "detail", 
-           required = true, example = "/errors/authentication/not-authorized/01")
+       @Schema(description = "A URI that identifies the specific occurrence of the error", name = "detail", 
+           requiredMode = Schema.RequiredMode.REQUIRED, example = "/errors/authentication/not-authorized/01")
     private String instance ="/errors/uncategorized/bank";
 
     public StandarizedApiExceptionResponse(String title, String code, String detail) {

@@ -1,7 +1,6 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
  */
 package com.paymentchain.billing.common;
 
@@ -19,18 +18,19 @@ import org.mapstruct.Mappings;
  */
 @Mapper(componentModel = "spring")
 public interface InvoiceRequestMapper {
-    
-      @Mappings({
-        @Mapping(source = "customer", target = "customerId")})
+
+    @Mappings({
+        @Mapping(source = "customer", target = "customerId"),
+        @Mapping(target = "id", ignore = true)}
+    )
     Invoice InvoiceRequestToInvoice(InvoiceRequest source);
-                
+
     List<Invoice> InvoiceRequestListToInvoiceList(List<InvoiceRequest> source);
-    
- /*     @InheritInverseConfiguration
-    InvoiceRequest InvoiceToInvoiceRequest(Invoice source);  
-    
-     @InheritInverseConfiguration
-      List<InvoiceRequest> InvoiceListToInvoiceRequestList(List<Invoice> source);*/
-    
-    
+
+    @InheritInverseConfiguration
+    InvoiceRequest InvoiceToInvoiceRequest(Invoice source);
+
+    @InheritInverseConfiguration
+    List<InvoiceRequest> InvoiceListToInvoiceRequestList(List<Invoice> source);
+
 }
