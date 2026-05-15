@@ -1,0 +1,9 @@
+workflow-aggregator
+git
+credentials-binding
+sonar
+pipeline-stage-view
+timestamper
+ansicolor
+junit
+mailer

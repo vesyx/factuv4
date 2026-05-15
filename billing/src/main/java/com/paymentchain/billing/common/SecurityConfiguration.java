@@ -8,10 +8,9 @@ package com.paymentchain.billing.common;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.stream.Stream;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -35,8 +34,6 @@ import org.springframework.web.cors.CorsConfiguration;
 @EnableWebSecurity
 public class SecurityConfiguration {
 
-    @Autowired
-private Environment env;
     private static final String[] NO_AUTH_LIST = {
         "*/api-docs/**",//
         "/swagger-ui/**",//
@@ -47,19 +44,39 @@ private Environment env;
         "/login",
         "/h2-console/**"};
 
+    @Value("${app.security.user.name:user}")
+    private String appUserName;
+
+    @Value("${app.security.user.password:local-user-password}")
+    private String appUserPassword;
+
+    @Value("${app.security.admin.name:admin}")
+    private String appAdminName;
+
+    @Value("${app.security.admin.password:local-admin-password}")
+    private String appAdminPassword;
+
+    @Value("${app.cors.allowed-origin-patterns:http://localhost:3000,http://localhost:7080,http://localhost:8080}")
+    private String allowedOriginPatterns;
+
     @Bean
     public UserDetailsService users() {
         UserDetails user = User.builder()
-                .username("user")
-                .password(passwordEncoder().encode("qwerty"))
+                .username(appUserName)
+                .password(passwordEncoder().encode(appUserPassword))
                 .roles("USER")
                 .build();
 
         UserDetails admin = User.builder()
-                .username("admin")
-                .password(passwordEncoder().encode("admin"))
+                .username(appAdminName)
+                .password(passwordEncoder().encode(appAdminPassword))
                 .roles("USER", "ADMIN")
                 .build();
+
+        if (appUserName.equals(appAdminName)) {
+            return new InMemoryUserDetailsManager(admin);
+        }
+
         return new InMemoryUserDetailsManager(user, admin);
     }
 
@@ -72,7 +89,7 @@ private Environment env;
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .httpBasic(Customizer.withDefaults())
-                 .formLogin(form -> form
+                .formLogin(form -> form
                 .defaultSuccessUrl("/swagger-ui/index.html", true) // Redirigir a Swagger después del inicio de sesión exitoso
                 .permitAll() // Permitir acceso a la página de inicio de sesión
                )
@@ -95,13 +112,15 @@ private Environment env;
     public Customizer<CorsConfigurer<HttpSecurity>> corsCustomizer() {
         return (cors) -> {
             CorsConfiguration cc = new CorsConfiguration();
-            cc.setAllowedHeaders(Arrays.asList("Origin,Accept", "X-Requested-With", "Content-Type", "Access-Control-Request-Method", "Access-Control-Request-Headers", "Authorization"));
+            cc.setAllowedHeaders(Arrays.asList("Origin", "Accept", "X-Requested-With", "Content-Type", "Access-Control-Request-Method", "Access-Control-Request-Headers", "Authorization"));
             cc.setExposedHeaders(Arrays.asList("Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"));
             cc.setAllowCredentials(Boolean.TRUE);
-            //if you use AllowCredentials to true, you nee use AllowedOriginPatterns for allow any origin (*), because AllowedOrigin are no compatible with AllowCredentials
-            cc.setAllowedOriginPatterns(Arrays.asList("*"));
+            cc.setAllowedOriginPatterns(Arrays.stream(allowedOriginPatterns.split(","))
+                    .map(String::trim)
+                    .filter(pattern -> !pattern.isBlank())
+                    .toList());
             cc.setAllowedMethods(Arrays.asList("GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"));
-            cc.setMaxAge(Duration.ZERO);
+            cc.setMaxAge(Duration.ofMinutes(30));
             cors.configurationSource(request -> cc);
         };
     }
